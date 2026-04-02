@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BrailLink — English to Braille</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Syne+Mono&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0d0d12;--paper:#f5f0e8;--cream:#ede7d6;--gold:#c8952a;--gold-lt:#e8b84b;
+  --dot:#1a1a2e;--teal:#0f7b6c;--teal-lt:#16a394;--red:#c0392b;--muted:#7a7060;
+  --border:#d4cbb8;--white:#ffffff;--r:14px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Syne',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;background-image:radial-gradient(circle,rgba(13,13,18,.12) 1.2px,transparent 1.2px);background-size:26px 26px;pointer-events:none}
+.page{position:relative;z-index:1}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 56px;height:70px;background:var(--ink);position:sticky;top:0;z-index:200;border-bottom:3px solid var(--gold)}
+.nav-logo{display:flex;align-items:center;gap:11px;text-decoration:none}
+.nav-logo-icon{width:36px;height:36px;background:var(--gold);border-radius:8px;display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:7px;align-items:center}
+.nav-logo-icon span{width:8px;height:8px;background:var(--ink);border-radius:50%;display:block}
+.nav-logo-icon span:nth-child(2),.nav-logo-icon span:nth-child(4){opacity:.25}
+.nav-logo-text{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--white)}
+.nav-logo-text em{color:var(--gold);font-style:normal}
+.nav-links{display:flex;align-items:center;gap:32px;list-style:none}
+.nav-links a{color:rgba(255,255,255,.6);text-decoration:none;font-size:14px;font-weight:600;transition:color .2s}
+.nav-links a:hover{color:var(--white)}
+.btn-pnav{background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink)!important;padding:9px 20px;border-radius:8px;font-weight:800!important;font-size:13px!important;box-shadow:3px 3px 0 rgba(255,255,255,.18);transition:transform .15s,box-shadow .15s!important}
+.btn-pnav:hover{transform:translateY(-1px);box-shadow:3px 5px 0 rgba(255,255,255,.25)!important}
+
+/* HERO */
+.hero{text-align:center;padding:88px 24px 68px;max-width:820px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:var(--paper);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 16px;border-radius:100px;margin-bottom:28px}
+.hero h1{font-family:'Lora',serif;font-size:clamp(42px,7vw,82px);font-weight:600;line-height:1.05;letter-spacing:-2px;color:var(--ink);margin-bottom:22px}
+.hero h1 em{color:var(--teal);font-style:italic}
+.hero-sub{font-size:18px;color:var(--muted);line-height:1.65;font-family:'Lora',serif}
+
+/* CARD */
+.conv-wrap{max-width:940px;margin:0 auto 80px;padding:0 24px}
+.conv-card{background:var(--white);border:2px solid var(--ink);border-radius:22px;box-shadow:8px 8px 0 var(--ink);overflow:hidden}
+
+/* TABS */
+.tabs-row{display:flex;border-bottom:2px solid var(--ink);background:var(--cream)}
+.tab{flex:1;padding:17px 10px;background:none;border:none;border-right:1px solid var(--border);border-bottom:3px solid transparent;margin-bottom:-2px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s}
+.tab:last-child{border-right:none}
+.tab.active{color:var(--ink);background:var(--white);border-bottom-color:var(--teal)}
+.tab:hover:not(.active){color:var(--ink);background:rgba(0,0,0,.03)}
+.pro-chip{font-size:9px;font-weight:800;letter-spacing:1px;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);padding:2px 7px;border-radius:100px}
+
+/* PANELS */
+.panels{padding:28px 32px 0}
+.panel{display:none}.panel.active{display:block}
+textarea{width:100%;min-height:150px;background:var(--cream);border:1.5px solid var(--border);border-radius:var(--r);padding:18px 20px;font-family:'Syne',sans-serif;font-size:16px;line-height:1.6;color:var(--ink);resize:vertical;outline:none;transition:border-color .2s}
+textarea:focus{border-color:var(--teal)}
+textarea::placeholder{color:#b0a890}
+.char-row{display:flex;justify-content:flex-end;margin-top:7px;font-size:12px;color:var(--muted);font-family:'Syne Mono',monospace}
+
+/* SPEAK */
+.speak-inner{display:flex;flex-direction:column;align-items:center;gap:18px;padding:28px 0 10px}
+.mic-btn{width:88px;height:88px;border-radius:50%;background:var(--ink);border:none;cursor:pointer;font-size:32px;display:flex;align-items:center;justify-content:center;box-shadow:4px 4px 0 var(--teal);transition:transform .15s,background .2s}
+.mic-btn:hover{background:var(--dot)}
+.mic-btn.rec{background:var(--red);animation:mpulse 1.1s infinite}
+@keyframes mpulse{0%,100%{box-shadow:4px 4px 0 var(--red),0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:4px 4px 0 var(--red),0 0 0 20px rgba(192,57,43,0)}}
+.speak-hint{font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+.speak-box{width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:var(--r);padding:16px 18px;font-size:15px;color:var(--muted);line-height:1.6;min-height:52px;font-family:'Lora',serif;font-style:italic}
+
+/* OCR */
+.ocr-drop{border:2px dashed var(--border);border-radius:var(--r);padding:42px 20px;text-align:center;cursor:pointer;background:var(--cream);transition:all .2s;position:relative}
+.ocr-drop:hover{border-color:var(--teal);background:rgba(15,123,108,.04)}
+.ocr-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.ocr-icon-big{font-size:36px;margin-bottom:12px}
+.ocr-label{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.ocr-sub{font-size:13px;color:var(--muted)}
+.ocr-lock{margin-top:16px;background:rgba(200,149,42,.1);border:1px solid rgba(200,149,42,.35);border-radius:10px;padding:12px 16px;font-size:13px;font-weight:600;color:var(--gold);display:flex;align-items:center;gap:8px}
+
+/* CONVERT BTN */
+.conv-row{padding:22px 32px}
+.btn-conv{width:100%;padding:18px;background:var(--ink);border:2px solid var(--ink);border-radius:var(--r);color:var(--white);font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:4px 4px 0 var(--teal);transition:all .18s}
+.btn-conv:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--teal)}
+.btn-conv:active{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--teal)}
+
+/* OUTPUT */
+.output-zone{border-top:2px solid var(--ink);padding:28px 32px 32px;background:var(--ink);border-radius:0 0 20px 20px}
+.out-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.out-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
+.out-actions{display:flex;gap:8px}
+.btn-act{padding:8px 15px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:9px;color:rgba(255,255,255,.75);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:.3px;text-transform:uppercase;transition:all .18s}
+.btn-act:hover{background:rgba(255,255,255,.14);color:var(--white);border-color:rgba(255,255,255,.35)}
+.btn-act.ok{border-color:#16a394;color:#16a394}
+.braille-disp{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.12);border-radius:var(--r);padding:24px 28px;font-family:'Syne Mono',monospace;font-size:28px;letter-spacing:5px;line-height:1.8;color:#a5e8de;min-height:88px;word-break:break-all;transition:all .3s}
+.braille-ph{font-family:'Lora',serif;font-size:15px;font-style:italic;color:rgba(255,255,255,.2);letter-spacing:0}
+.src-row{margin-top:12px;display:none;background:rgba(255,255,255,.04);border-radius:9px;padding:10px 16px;font-size:13px;color:rgba(255,255,255,.45);font-family:'Lora',serif;font-style:italic}
+.src-row span{color:rgba(255,255,255,.75);font-style:normal}
+
+/* SECTION */
+.sec{max-width:940px;margin:0 auto;padding:0 24px 90px}
+.sec-head{text-align:center;margin-bottom:52px}
+.sec-head h2{font-family:'Lora',serif;font-size:clamp(30px,4vw,48px);letter-spacing:-1.5px;margin-bottom:12px}
+.sec-head p{font-size:16px;color:var(--muted);font-family:'Lora',serif}
+
+/* FEATURE GRID */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.feat-card{background:var(--white);border:2px solid var(--ink);border-radius:18px;padding:28px 24px;box-shadow:4px 4px 0 var(--ink);transition:transform .15s,box-shadow .15s}
+.feat-card:hover{transform:translate(-3px,-3px);box-shadow:7px 7px 0 var(--ink)}
+.feat-emoji{font-size:28px;margin-bottom:14px}
+.feat-card h3{font-size:16px;font-weight:700;margin-bottom:8px}
+.feat-card p{font-size:13px;color:var(--muted);line-height:1.6;font-family:'Lora',serif}
+
+/* PRICING */
+.pricing-sec{background:var(--ink);padding:90px 0 100px;position:relative;overflow:hidden}
+.pricing-sec::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.055) 1.2px,transparent 1.2px);background-size:26px 26px}
+.pricing-inner{max-width:1020px;margin:0 auto;padding:0 24px;position:relative}
+.pricing-sec .sec-head h2{color:var(--white)}
+.pricing-sec .sec-head p{color:rgba(255,255,255,.45)}
+.plans-grid{display:grid;grid-template-columns:1fr 1.08fr 1fr;gap:20px;align-items:start}
+.plan{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.14);border-radius:20px;padding:34px 28px;position:relative;transition:transform .2s,box-shadow .2s}
+.plan:hover{transform:translateY(-5px);box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.plan.feat{background:var(--white);border:2px solid var(--gold);box-shadow:0 0 0 4px rgba(200,149,42,.18)}
+.plan.feat .plan-name{color:var(--muted)}
+.plan.feat .plan-price,.plan.feat li{color:var(--ink)}
+.plan.feat .plan-cycle{color:var(--muted)}
+.plan.feat li.dim{color:#bbb}
+.plan.feat .p-divider{background:var(--border)}
+.popular-tag{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:5px 16px;border-radius:100px;white-space:nowrap}
+.plan-name{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:18px}
+.plan-price{font-family:'Lora',serif;font-size:52px;letter-spacing:-2px;line-height:1;color:var(--white);margin-bottom:4px}
+.plan-price sup{font-size:22px;vertical-align:super;letter-spacing:0}
+.plan-cycle{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:6px}
+.save-tag{display:inline-block;background:rgba(15,123,108,.25);border:1px solid rgba(22,163,148,.4);color:var(--teal-lt);font-size:12px;font-weight:700;padding:3px 10px;border-radius:100px;margin-bottom:22px}
+.p-divider{height:1px;background:rgba(255,255,255,.1);margin:22px 0}
+.plan ul{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.plan li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:rgba(255,255,255,.8);line-height:1.45}
+.plan li.dim{color:rgba(255,255,255,.3)}
+.li-ic{font-size:13px;flex-shrink:0;margin-top:1px}
+.btn-plan{width:100%;padding:15px;border-radius:12px;border:none;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.2px;transition:all .18s}
+.btn-free{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);color:var(--white)}
+.btn-free:hover{background:rgba(255,255,255,.18)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink)}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(200,149,42,.4)}
+.btn-teal{background:linear-gradient(135deg,var(--teal),var(--teal-lt));color:var(--white)}
+.btn-teal:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,123,108,.4)}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;z-index:999;background:var(--ink);color:var(--white);border:2px solid var(--teal);border-radius:12px;padding:14px 20px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:4px 4px 0 var(--teal);transform:translateY(100px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);max-width:340px}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;z-index:500;background:rgba(13,13,18,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--white);border:2px solid var(--ink);border-radius:22px;box-shadow:8px 8px 0 var(--ink);padding:42px 40px;max-width:480px;width:92%;position:relative;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-x{position:absolute;top:16px;right:16px;width:34px;height:34px;background:var(--cream);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .18s}
+.modal-x:hover{background:var(--ink);color:var(--white);border-color:var(--ink)}
+.modal-icon{font-size:34px;margin-bottom:12px}
+.modal h3{font-family:'Lora',serif;font-size:28px;letter-spacing:-1px;margin-bottom:8px}
+.modal-sub{font-size:14px;color:var(--muted);margin-bottom:24px;font-family:'Lora',serif;line-height:1.55}
+.plan-toggle{display:flex;gap:10px;margin-bottom:22px}
+.ppill{flex:1;padding:14px 10px;background:var(--cream);border:2px solid var(--border);border-radius:12px;text-align:center;cursor:pointer;transition:all .18s}
+.ppill.sel{border-color:var(--gold);background:rgba(200,149,42,.08)}
+.ppill .pp-price{font-size:20px;font-weight:800;color:var(--ink)}
+.ppill .pp-label{font-size:12px;color:var(--muted);margin-top:2px}
+.ppill .pp-save{font-size:11px;font-weight:700;color:var(--teal);margin-top:4px}
+.field{width:100%;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:13px 16px;font-family:'Syne',sans-serif;font-size:15px;color:var(--ink);outline:none;margin-bottom:11px;transition:border-color .2s}
+.field:focus{border-color:var(--teal)}
+.field::placeholder{color:#b0a890}
+.btn-sub{width:100%;padding:16px;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);border:none;border-radius:12px;font-family:'Syne',sans-serif;font-size:16px;font-weight:800;cursor:pointer;letter-spacing:.2px;box-shadow:4px 4px 0 var(--ink);transition:all .18s;margin-top:4px}
+.btn-sub:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+
+/* FOOTER */
+footer{background:var(--ink);color:rgba(255,255,255,.45);padding:28px 56px;display:flex;align-items:center;justify-content:space-between;font-size:13px;border-top:3px solid var(--gold)}
+.ft-logo{font-size:18px;font-weight:800;color:var(--white)}
+.ft-logo em{color:var(--gold);font-style:normal}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .55s ease,transform .55s ease}
+.reveal.vis{opacity:1;transform:none}
+
+@media(max-width:768px){
+  nav{padding:0 20px}
+  .nav-links{display:none}
+  .hero{padding:60px 20px 50px}
+  .panels,.conv-row{padding-left:20px;padding-right:20px}
+  .output-zone{padding:22px 20px 24px}
+  .feat-grid,.plans-grid{grid-template-columns:1fr}
+  footer{flex-direction:column;gap:10px;text-align:center;padding:24px 20px}
+  .plan.feat{order:-1}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-icon"><span></span><span></span><span></span><span></span></div>
+    <span class="nav-logo-text">Brail<em>Link</em></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#app">Converter</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#" class="btn-pnav" onclick="openModal('monthly');return false">Go Premium ✦</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">⠃ Accessibility Tool</div>
+  <h1>English to <em>Braille</em>,<br>Instantly.</h1>
+  <p class="hero-sub">Type, speak, or scan your text — BrailLink converts<br>it into standard Braille with a single tap.</p>
+</div>
+
+<!-- CONVERTER -->
+<div class="conv-wrap" id="app">
+  <div class="conv-card">
+
+    <div class="tabs-row">
+      <button class="tab active" data-p="text" onclick="switchTab(this)">⌨️&nbsp; Text</button>
+      <button class="tab" data-p="speak" onclick="switchTab(this)">🎙️&nbsp; Speak</button>
+      <button class="tab" data-p="ocr" onclick="switchTab(this)">📷&nbsp; OCR &nbsp;<span class="pro-chip">PRO</span></button>
+    </div>
+
+    <div class="panels">
+      <!-- TEXT -->
+      <div class="panel active" id="panel-text">
+        <textarea id="textInput" placeholder="Type your English text here… e.g. Hello, World!" oninput="updateCount()"></textarea>
+        <div class="char-row"><span id="charCount">0</span> characters</div>
+      </div>
+
+      <!-- SPEAK -->
+      <div class="panel" id="panel-speak">
+        <div class="speak-inner">
+          <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎙️</button>
+          <div class="speak-hint" id="speakHint">Tap the mic and start speaking</div>
+          <div class="speak-box" id="speakBox">Your speech will appear here…</div>
+        </div>
+      </div>
+
+      <!-- OCR -->
+      <div class="panel" id="panel-ocr">
+        <div class="ocr-drop">
+          <input type="file" accept="image/*" onchange="handleOCR(event)" />
+          <div class="ocr-icon-big">📄</div>
+          <div class="ocr-label">Click or drag an image here</div>
+          <div class="ocr-sub">PNG, JPG, GIF — up to 10 MB</div>
+        </div>
+        <div class="ocr-lock">🔒 OCR image extraction requires a <strong>Premium</strong> plan — upgrade to unlock.</div>
+      </div>
+    </div>
+
+    <div class="conv-row">
+      <button class="btn-conv" onclick="convert()">
+        <span style="font-family:'Syne Mono',monospace;font-size:20px">⠃</span>
+        Convert to Braille
+      </button>
+    </div>
+
+    <div class="output-zone">
+      <div class="out-header">
+        <div class="out-title">⠃ Braille Output</div>
+        <div class="out-actions">
+          <button class="btn-act" id="btnCopy" onclick="copyOut()">📋 Copy</button>
+          <button class="btn-act" id="btnSpeak" onclick="speakOut()">🔊 Speak</button>
+        </div>
+      </div>
+      <div class="braille-disp" id="brailleOut">
+        <span class="braille-ph">Your Braille output will appear here…</span>
+      </div>
+      <div class="src-row" id="srcRow">Original: <span id="srcTxt"></span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="sec reveal" id="features">
+  <div class="sec-head">
+    <h2>Premium Features</h2>
+    <p>Everything you need for professional Braille accessibility</p>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-card"><div class="feat-emoji">📷</div><h3>OCR Image Scanning</h3><p>Upload any printed image and BrailLink extracts the text and converts it to Braille automatically.</p></div>
+    <div class="feat-card"><div class="feat-emoji">📚</div><h3>Grade 2 Contractions</h3><p>Automatically apply standard Grade 2 Braille contractions for compact, professional-grade output.</p></div>
+    <div class="feat-card"><div class="feat-emoji">🌐</div><h3>Multi-language Braille</h3><p>Support for UEB, French, Spanish and other international Braille codes beyond standard English.</p></div>
+    <div class="feat-card"><div class="feat-emoji">📄</div><h3>Document Export</h3><p>Export output as BRF files, embossable PDFs, or DOCX — ready for Braille embossers and printers.</p></div>
+    <div class="feat-card"><div class="feat-emoji">🔊</div><h3>Premium Neural TTS</h3><p>High-quality neural text-to-speech with adjustable speed, pitch, and regional accent options.</p></div>
+    <div class="feat-card"><div class="feat-emoji">☁️</div><h3>Cloud History &amp; Sync</h3><p>Save and revisit all past conversions across every device with a searchable, secure cloud archive.</p></div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="pricing-sec" id="pricing">
+  <div class="pricing-inner">
+    <div class="sec-head reveal">
+      <h2>Simple, Transparent Pricing</h2>
+      <p>Start free — upgrade when you need more</p>
+    </div>
+    <div class="plans-grid reveal">
+
+      <!-- Free -->
+      <div class="plan">
+        <div class="plan-name">Free</div>
+        <div class="plan-price"><sup>₹</sup>0</div>
+        <div class="plan-cycle">forever</div>
+        <div class="p-divider"></div>
+        <ul>
+          <li><span class="li-ic">✅</span> English → Braille conversion</li>
+          <li><span class="li-ic">✅</span> Copy Braille output</li>
+          <li><span class="li-ic">✅</span> Text-to-speech readback</li>
+          <li><span class="li-ic">✅</span> Voice (Speak) input</li>
+          <li class="dim"><span class="li-ic">🔒</span> OCR image scanning</li>
+          <li class="dim"><span class="li-ic">🔒</span> Grade 2 contractions</li>
+          <li class="dim"><span class="li-ic">🔒</span> Document export</li>
+          <li class="dim"><span class="li-ic">🔒</span> Cloud history</li>
+        </ul>
+        <button class="btn-plan btn-free" onclick="toast('✅ You\'re already on the Free plan!')">Get Started</button>
+      </div>
+
+      <!-- Monthly -->
+      <div class="plan feat">
+        <div class="popular-tag">⭐ Most Popular</div>
+        <div class="plan-name">Premium Monthly</div>
+        <div class="plan-price"><sup>₹</sup>199</div>
+        <div class="plan-cycle">per month</div>
+        <div class="p-divider"></div>
+        <ul>
+          <li><span class="li-ic">✅</span> Everything in Free</li>
+          <li><span class="li-ic">📷</span> OCR image scanning</li>
+          <li><span class="li-ic">📚</span> Grade 2 contractions</li>
+          <li><span class="li-ic">🌐</span> Multi-language Braille</li>
+          <li><span class="li-ic">🔊</span> Premium neural voices</li>
+          <li><span class="li-ic">📄</span> Export BRF / PDF / DOCX</li>
+          <li><span class="li-ic">☁️</span> Cloud history (500 entries)</li>
+          <li><span class="li-ic">🎧</span> Priority support</li>
+        </ul>
+        <button class="btn-plan btn-gold" onclick="openModal('monthly')">Upgrade — ₹199/mo →</button>
+      </div>
+
+      <!-- Annual -->
+      <div class="plan">
+        <div class="plan-name">Premium Annual</div>
+        <div class="plan-price"><sup>₹</sup>2000</div>
+        <div class="plan-cycle">per year</div>
+        <div class="save-tag">Save ₹388 vs monthly</div>
+        <div class="p-divider"></div>
+        <ul>
+          <li><span class="li-ic">✅</span> Everything in Monthly</li>
+          <li><span class="li-ic">♾️</span> Unlimited cloud history</li>
+          <li><span class="li-ic">👥</span> Up to 3 team members</li>
+          <li><span class="li-ic">🖨️</span> Braille printer integration</li>
+          <li><span class="li-ic">📊</span> Usage analytics dashboard</li>
+          <li><span class="li-ic">🔌</span> API access (10k req/mo)</li>
+          <li><span class="li-ic">🌙</span> Early feature access</li>
+          <li><span class="li-ic">🎯</span> Dedicated account manager</li>
+        </ul>
+        <button class="btn-plan btn-teal" onclick="openModal('annual')">Upgrade — ₹2000/yr →</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ft-logo">Brail<em>Link</em></div>
+  <span>Making the world more accessible — one dot at a time. ⠃</span>
+  <span>© 2025 BrailLink. All rights reserved.</span>
+</footer>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toastEl"><span id="toastMsg"></span></div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal()">✕</button>
+    <div class="modal-icon">✦</div>
+    <h3>Unlock Premium</h3>
+    <p class="modal-sub">Get OCR, Grade 2 Braille, multi-language support, document export, premium voices, and cloud sync.</p>
+    <div class="plan-toggle">
+      <div class="ppill sel" id="pill-monthly" onclick="pickPlan('monthly')">
+        <div class="pp-price">₹199</div><div class="pp-label">per month</div>
+      </div>
+      <div class="ppill" id="pill-annual" onclick="pickPlan('annual')">
+        <div class="pp-price">₹2000</div><div class="pp-label">per year</div><div class="pp-save">Save ₹388</div>
+      </div>
+    </div>
+    <input class="field" id="fName" type="text" placeholder="Full name" />
+    <input class="field" id="fEmail" type="email" placeholder="Email address" />
+    <input class="field" id="fCard" type="text" placeholder="Card number (demo)" />
+    <button class="btn-sub" onclick="subscribe()">Subscribe Now 🚀</button>
+  </div>
+</div>
+
+<script>
+/* Braille map */
+const BM={a:'⠁',b:'⠃',c:'⠉',d:'⠙',e:'⠑',f:'⠋',g:'⠛',h:'⠓',i:'⠊',j:'⠚',k:'⠅',l:'⠇',m:'⠍',n:'⠝',o:'⠕',p:'⠏',q:'⠟',r:'⠗',s:'⠎',t:'⠞',u:'⠥',v:'⠧',w:'⠺',x:'⠭',y:'⠽',z:'⠵','0':'⠚','1':'⠁','2':'⠃','3':'⠉','4':'⠙','5':'⠑','6':'⠋','7':'⠛','8':'⠓','9':'⠊',' ':'⠀','.':'⠲',',':'⠂','?':'⠦','!':'⠖',"'":'⠄','-':'⠤',';':'⠆',':':'⠒','\n':'⠀\n'};
+
+let activeP='text', selPlan='monthly', recognition=null, isRec=false;
+
+function switchTab(btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  activeP=btn.dataset.p;
+  document.getElementById('panel-'+activeP).classList.add('active');
+  if(activeP==='ocr') toast('🔒 OCR is a Premium feature — upgrade to unlock!');
+}
+
+function updateCount(){
+  document.getElementById('charCount').textContent=document.getElementById('textInput').value.length;
+}
+
+function convert(){
+  let src='';
+  if(activeP==='text') src=document.getElementById('textInput').value;
+  else if(activeP==='speak'){
+    const t=document.getElementById('speakBox').textContent;
+    src=(t==='Your speech will appear here…')?'':t;
+  } else { toast('🔒 OCR requires Premium. Upgrade to continue!'); return; }
+  if(!src.trim()){ toast('⚠️ Please enter some text first!'); return; }
+  const br=src.toLowerCase().split('').map(c=>BM[c]??c).join('');
+  document.getElementById('brailleOut').textContent=br;
+  document.getElementById('srcRow').style.display='block';
+  document.getElementById('srcTxt').textContent=src;
+  toast('✅ Converted successfully!');
+}
+
+function copyOut(){
+  const t=document.getElementById('brailleOut').textContent;
+  if(t.includes('appear here')){ toast('⚠️ Nothing to copy yet!'); return; }
+  navigator.clipboard.writeText(t).then(()=>{
+    const b=document.getElementById('btnCopy');
+    b.classList.add('ok'); b.textContent='✅ Copied!';
+    setTimeout(()=>{ b.classList.remove('ok'); b.textContent='📋 Copy'; },2200);
+    toast('📋 Braille copied to clipboard!');
+  });
+}
+
+function speakOut(){
+  const s=document.getElementById('srcTxt').textContent;
+  if(!s){ toast('⚠️ Convert something first!'); return; }
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(s); u.rate=0.9;
+  window.speechSynthesis.speak(u);
+  toast('🔊 Reading aloud…');
+}
+
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ toast('⚠️ Speech recognition not supported in this browser'); return; }
+  if(isRec){ recognition&&recognition.stop(); isRec=false; document.getElementById('micBtn').classList.remove('rec'); document.getElementById('speakHint').textContent='Click Convert to Braille ↓'; return; }
+  recognition=new SR(); recognition.lang='en-US'; recognition.interimResults=true;
+  recognition.onstart=()=>{ isRec=true; document.getElementById('micBtn').classList.add('rec'); document.getElementById('speakHint').textContent='🔴 Listening… speak now'; document.getElementById('speakBox').textContent=''; document.getElementById('speakBox').style.fontStyle='normal'; document.getElementById('speakBox').style.color='var(--ink)'; };
+  recognition.onresult=e=>{ document.getElementById('speakBox').textContent=Array.from(e.results).map(r=>r[0].transcript).join(''); };
+  recognition.onend=()=>{ isRec=false; document.getElementById('micBtn').classList.remove('rec'); document.getElementById('speakHint').textContent='✅ Done — click Convert to Braille'; };
+  recognition.onerror=()=>{ isRec=false; document.getElementById('micBtn').classList.remove('rec'); document.getElementById('speakHint').textContent='Error — please try again'; };
+  recognition.start();
+}
+
+function handleOCR(e){ if(e.target.files[0]) toast('🔒 OCR requires Premium. Upgrade to unlock!'); }
+
+function toast(msg){ const el=document.getElementById('toastEl'); document.getElementById('toastMsg').textContent=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),3200); }
+
+function openModal(plan){ selPlan=plan; pickPlan(plan); document.getElementById('overlay').classList.add('open'); }
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+function overlayClick(e){ if(e.target===document.getElementById('overlay')) closeModal(); }
+function pickPlan(p){ selPlan=p; ['monthly','annual'].forEach(k=>document.getElementById('pill-'+k).classList.toggle('sel',k===p)); }
+function subscribe(){
+  const name=document.getElementById('fName').value.trim();
+  const email=document.getElementById('fEmail').value.trim();
+  if(!name||!email){ toast('⚠️ Please fill in your name and email'); return; }
+  closeModal();
+  toast('🎉 Welcome to Premium! Subscribed at '+(selPlan==='monthly'?'₹199/month':'₹2000/year'));
+}
+
+const ro=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('vis'); }),{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
+</script>
+</body>
+</html>
