@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Braillink</title>
+  <link rel="stylesheet" href="2style.css" />
+</head>
+<body>
+  <!-- Login page -->
+  <section id="loginScreen" class="login-wrap container">
+    <div class="login-card glass">
+      <h1 class="login-title">Braillink Login</h1>
+      <p class="login-sub">Login to start converting English text into Braille.</p>
+      <form id="loginForm">
+        <div class="field">
+          <label for="nameInput">Name</label>
+          <input id="nameInput" class="input" type="text" placeholder="Enter your name" required />
+        </div>
+        <div class="field">
+          <label for="passInput">Password</label>
+          <input id="passInput" class="input" type="password" placeholder="Enter password" minlength="4" required />
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%;">Login</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Home page -->
+  <main id="homeScreen" class="container hidden">
+    <header class="app-header glass">
+      <div class="brand">
+        <h1>Braillink</h1>
+        <p>English to Braille converter with voice input</p>
+      </div>
+      <div id="profileAvatar" class="profile">U</div>
+    </header>
+
+    <section class="section glass">
+      <h2>Convert Text</h2>
+      <p>Type your English text or use speaker input, then click convert.</p>
+      <textarea id="englishInput" placeholder="Type English text here..."></textarea>
+      <div class="tool-row">
+        <button id="speakInputBtn" class="btn btn-soft" type="button">Speaker Input</button>
+        <button id="convertBtn" class="btn btn-primary" type="button">Convert</button>
+      </div>
+    </section>
+
+    <section class="section glass">
+      <h2>Braille Output</h2>
+      <div id="brailleOutput" class="output-box">Your braille output will appear here...</div>
+      <div class="tool-row" style="margin-top:10px;">
+        <button id="copyBtn" class="btn btn-soft" type="button">Copy</button>
+      </div>
+
+      <div class="premium-card">
+        <p>Want advanced tools? Explore premium features.</p>
+        <button id="premiumBtn" class="btn btn-premium" type="button">Premium Popup</button>
+      </div>
+    </section>
+
+    <section class="section glass">
+      <h2>Braille Information</h2>
+      <p>Braille uses raised-dot cells to represent letters, numbers, and punctuation.</p>
+      <div class="info-grid">
+        <div class="info-item">
+          <h3>Letters A-E</h3>
+          <div class="dots">⠁ ⠃ ⠉ ⠙ ⠑</div>
+          <small>A, B, C, D, E</small>
+        </div>
+        <div class="info-item">
+          <h3>Numbers</h3>
+          <div class="dots">⠼⠁ ⠼⠃ ⠼⠉</div>
+          <small>1, 2, 3 (with number sign)</small>
+        </div>
+        <div class="info-item">
+          <h3>Common Punctuation</h3>
+          <div class="dots">⠂ ⠲ ⠖</div>
+          <small>Comma, Full stop, Exclamation</small>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">Copyright 2026 Braillink. All rights reserved.</footer>
+  </main>
+
+  <!-- Premium popup -->
+  <div id="premiumModal" class="modal-wrap">
+    <div class="modal">
+      <h3>Explore our premium version</h3>
+      <ul>
+        <li>Multilanguage support</li>
+        <li>Download text option</li>
+        <li>Print text option</li>
+        <li>OCR option for input</li>
+      </ul>
+      <div class="price">Price: 1599 per 6 months</div>
+      <div class="modal-actions">
+        <button id="payBtn" class="btn btn-premium" type="button">Pay 1599 / 6 months</button>
+        <button id="closeModalBtn" class="btn btn-soft" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="2script.js"></script>
+</body>
+</html>
+
